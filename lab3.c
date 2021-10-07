@@ -4,9 +4,6 @@
 #include<string.h>
 
 #define size 400//размер строки запроса
-//разделители строки запроса
-//char ex[100] = "03/Jul/1995:10:50:02 -0400";
-//tornado.umd.edu - - [28/Jul/1995:13:32:25 -0400] "GET /shuttle/missions/sts-74/sts-74-patch-small.gif HTTP/1.0" 200 5494
 long timestamp[100]; long tptr = 0;//массив timestamps для поиска окна
 long fcnt = 0; //кол-во неудачных запросов
 int window = 1;
@@ -16,31 +13,25 @@ int findwindow(int);
 //2 - время
 //4 - запрос
 //6 - код ответа
+//7 - биты
 
 int main () {
-    FILE* file = fopen("t.log", "r");
+    FILE* file = fopen("t.txt", "r");
     observeFile(file);
 
-    // for (int i = 0; i < tptr; ++i) 
-    //     printf("%d \n", timestamp[i]);
 
-    printf("%d" , findwindow(1));
+
+    //printf("%d" , findwindow(62));
     return(0);
 }
 
 int findwindow(int n) {
-    int c = 0;
     int mc = 0;
     for (int i = 0; i < tptr; ++i) {
-        for (int j = i + 1; j < tptr; ++j) {
-            if (timestamp[j] -  timestamp[i] <= n) {
-                ++c;
-            } else {
-                mc = (c > mc) ? c : mc;
-                c = 0;
-                break;
-            };
-        }
+        int c = 1;
+        for (int j = i + 1; j < tptr && (timestamp[j] -  timestamp[i] <= n); ++j)
+            ++c;
+        mc = (c > mc) ? c: mc;
     }
     return mc;
 }
@@ -48,8 +39,9 @@ int findwindow(int n) {
 
 void observeFile(FILE *file) {
     char request_format[15] = " []\"\"  \0";
-
+    int timestamp_buff = 0;
     char string_buff[size] = "";
+
     while (fgets(string_buff, size, file)) {
         char request_buff[8][100] = {""};
         int i = 0; int fp = 0; int wp = 0; int bp = 0;
@@ -59,20 +51,22 @@ void observeFile(FILE *file) {
                 ++bp;
                 wp = 0;
             } else {
-                *(*(request_buff + bp) + wp) = string_buff[i];
+                request_buff[bp][wp] = string_buff[i];
                 ++wp;
             }
-            
             ++i;
         }
-        timestamp[tptr++] = utime(request_buff[2]);
 
-        if ((int)(atof(request_buff[6]) / 500) == 1) {
-            fcnt++;
-            //printf("%s \n", string_buff);        
+        if (tptr == 0) {
+            timestamp_buff = utime(request_buff[2]);
+        }
+        timestamp[tptr++] = utime(request_buff[2]) - timestamp_buff;
+
+        if ((atoi(request_buff[7]) / 100) == 5){ //переделать
+            printf("%s \n", string_buff);
+            fcnt++;  
         }
     }
-
 }
 
 
