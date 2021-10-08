@@ -4,10 +4,10 @@
 #include<string.h>
 
 #define uint1024 unsigned long*
-#define FIELD_SIZE 9
-#define SIZE 35
-#define SIZE_CHAR 160
-unsigned long long max = 1000000000;
+#define FIELD_SIZE 9//ширина поля вывода в printf_value()
+#define SIZE 35//размер массива long
+#define SIZE_CHAR 310//размер строки в scanf_val()
+unsigned long long max = 1000000000;//макс. значение ячеек массива
 
 
 uint1024 init();
@@ -15,18 +15,41 @@ uint1024 from_uint(unsigned int);
 uint1024 add_op(uint1024, uint1024);
 uint1024 subtr_op(uint1024, uint1024);
 void printf_value(uint1024);
-void prt(unsigned long, int);
+void prt(unsigned long, int);//вспом. функция для printf_value()
 uint1024 multp_op(uint1024, uint1024);
-void scanf_val(uint1024);
+void scanf_val(uint1024*);
 
 
 int main() {
     uint1024 a = init();
     uint1024 b = from_uint(2);
-    scanf_val(a);
+    uint1024 c = init();
+    scanf_val(&a);
 
-    printf_value(multp_op(a, b));
+    for (int i = 0; i < 1024; ++i) {
+        a = multp_op(a, b);
+    }
+
+    printf_value(a);
     return 0;
+}
+
+
+void scanf_val(uint1024 *a) {
+    char str[SIZE_CHAR];
+    int k = 0;
+    int i = 0;
+    for (i; i < SIZE_CHAR; ++i) {
+        str[i] = '\0';
+    }
+    scanf("%s", &str);
+    while(str[i] == '\0' ) {i -= 1;}
+
+    while (i >= 0) {
+        *(*a + (k / FIELD_SIZE)) += (str[i] - '0') * pow(10, k % FIELD_SIZE);
+        ++k;
+        --i;
+    }
 }
 
 void prt(unsigned long x, int i) {
@@ -101,21 +124,4 @@ uint1024 multp_op(uint1024 a, uint1024 b) {
         }
     }
     return buff;
-}
-
-void scanf_val(uint1024 a) {
-    char str[SIZE_CHAR];
-    int k = 0;
-    int i = 0;
-    for (i; i < SIZE_CHAR; ++i) {
-        str[i] = '\0';
-    }
-    scanf("%s", &str);
-    while(str[i] == '\0' ) {i -= 1;}
-
-    while (i >= 0) {
-        *(a + (k / FIELD_SIZE)) += (str[i] - '0') * pow(10, k % FIELD_SIZE);
-        ++k;
-        --i;
-    }
 }
