@@ -22,15 +22,21 @@ void scanf_val(uint1024*);
 
 int main() {
     uint1024 a = init();
-    uint1024 b = from_uint(2);
-    uint1024 c = init();
+    uint1024 b = init();
+    uint1024 c = from_uint(1);
+    uint1024 d = from_uint(2);
+
     scanf_val(&a);
+    scanf_val(&b);
 
     for (int i = 0; i < 1024; ++i) {
-        a = multp_op(a, b);
+        c = multp_op(c,d);
     }
-
-    printf_value(a);
+    
+    printf_value(c); printf("\n");   
+    printf_value(add_op(a, b)); printf("\n");
+    printf_value(subtr_op(a, b)); printf("\n");
+    printf_value(multp_op(a, b));
     return 0;
 }
 
