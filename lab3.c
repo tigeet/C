@@ -3,93 +3,103 @@
 #include<math.h>
 #include<string.h>
 
-#define size 400//размер строки запроса
-long timestamp[100]; long tptr = 0;//массив timestamps для поиска окна
-long fcnt = 0; //кол-во неудачных запросов
-int window = 1;
+
+#define size  400//размер строки запроса
+long timestamp[1891714]; int n = 0;//
+
+
 long utime(char *stime);//преобразует строку времени в unix timestamp
-void observeFile(FILE*);
-int findwindow(int);
-//2 - время
-//4 - запрос
-//6 - код ответа
-//7 - биты
+long gettime(char[]);
+int geterror(char[]);
+void getwindow(long);
+
 
 int main () {
-    FILE* file = fopen("t.txt", "r");
-    observeFile(file);
+    FILE* file = fopen("access_log_Jul95", "r");
+    int errorCount = 0;
+    long wsize = 0;
 
-
-
-    //printf("%d" , findwindow(62));
-    return(0);
-}
-
-int findwindow(int n) {
-    int mc = 0;
-    for (int i = 0; i < tptr; ++i) {
-        int c = 1;
-        for (int j = i + 1; j < tptr && (timestamp[j] -  timestamp[i] <= n); ++j)
-            ++c;
-        mc = (c > mc) ? c: mc;
+    char str[size];
+    while (fgets(str, size, file)) {
+        timestamp[n++] = gettime(str);
+        if ((geterror(str) / 100) == 5){
+            ++errorCount;
+        }
     }
-    return mc;
+
+    printf("enter window size\n");
+    scanf("%d", &wsize);
+    getwindow(wsize);
+    
+    printf("\n5xx errors: %d\n", errorCount);
+
+    return 0;
 }
 
 
-void observeFile(FILE *file) {
-    char request_format[15] = " []\"\"  \0";
-    int timestamp_buff = 0;
-    char string_buff[size] = "";
-
-    while (fgets(string_buff, size, file)) {
-        char request_buff[8][100] = {""};
-        int i = 0; int fp = 0; int wp = 0; int bp = 0;
-        while (string_buff[i] != '\n') {
-            if (string_buff[i] == request_format[fp]) {
-                ++fp;
-                ++bp;
-                wp = 0;
-            } else {
-                request_buff[bp][wp] = string_buff[i];
-                ++wp;
+void getwindow(long width) {
+    long m = 0;//макс. окно
+    long mp1 = 0; long mp2 = 0;//индексы границ макс. окна
+    long p1 = 0; long p2 = 0;//индексы границ текущего окна
+    while (p2 < n - 1) {
+        if (timestamp[p2] - timestamp[p1] <= width) {
+            ++p2;
+        } else {
+            if (p2 - p1 > m) {
+                m = p2 - p1;
+                mp1 = p1 + 1;
+                mp2 = p2;
             }
-            ++i;
-        }
-
-        if (tptr == 0) {
-            timestamp_buff = utime(request_buff[2]);
-        }
-        timestamp[tptr++] = utime(request_buff[2]) - timestamp_buff;
-
-        if ((atoi(request_buff[7]) / 100) == 5){ //переделать
-            printf("%s \n", string_buff);
-            fcnt++;  
+            p1++;
         }
     }
+    if ((timestamp[p2] - timestamp[p1] <= width) && (p2 - p1 > m)) {
+        m = p2 - p1 + 1;
+        mp1 = p1 + 1;
+        mp2 = p2 + 1;
+    }
+    printf("count = %d, from %d to %d", m, mp1, mp2);
 }
 
+long gettime(char str[]) {
+    char buff[40];//хранит строку со временем
+    int ptr = 0;//индекс для времени
+    int i = 0;//индекс строки
+    while (str[i++] != '[');
+        
+    while (str[i] != ']')
+        buff[ptr++] = str[i++];
+    return utime(buff);
+}
 
-
-
-
+int geterror(char str[]) {
+    char buff[4];//хранит код ошибка
+    int ptr = 2;//индекс для кода ошибки
+    int i = strlen(str) -  1;//индекс строки
+    while (str[i--] != ' ');
+        
+    while (str[i] != ' ')
+        buff[ptr--] = str[i--];
+    return atof(buff);
+}
 
 long utime(char* stime) {
     char time_format[10] = "//::: ";//разделители строки времени
 
-    char buff[100][100] = {""};//переделать
-    int i = 0; int bp = 0; int wp = 0; int fp = 0; 
+    char buff[7][6] = {""};//хранит разбиение строки stime
+    int i = 0;//индекс строки stime
+    int bp = 0; int wp = 0;//индексы buff
+    int fp = 0; //индекс time_format
     while (stime[i]) {
         if (stime[i] == time_format[fp]) {
-            bp += 1;
-            fp += 1;
+            ++bp;
+            ++fp;
             wp = 0;
-        } else {
-            *(*(buff + bp) + wp) = stime[i]; 
-            wp += 1;
-        }
+        } else
+            buff[bp][wp++] = stime[i]; 
         ++i;
     }
+
     struct tm tdate = {
         .tm_mday = atof(buff[0]),
         .tm_mon = atof(buff[1]) - 1,
@@ -99,6 +109,7 @@ long utime(char* stime) {
         .tm_sec = atof(buff[5]),
         .tm_isdst = 0
     };
+
     time_t time = mktime(&tdate);
     return time;
 }
