@@ -3,131 +3,155 @@
 #include<stdlib.h>
 #include<string.h>
 
-#define uint1024 unsigned long*
 #define FIELD_SIZE 9//ширина поля вывода в printf_value()
 #define SIZE 35//размер массива long
 #define SIZE_CHAR 310//размер строки в scanf_val()
-unsigned long long max = 1000000000;//макс. значение ячеек массива
+const unsigned long long MAX = 1000000000;//макс. значение ячеек массива
 
+typedef struct {
+    unsigned long value[SIZE];
+} uint1024_t;
 
-uint1024 init();
-uint1024 from_uint(unsigned int);
-uint1024 add_op(uint1024, uint1024);
-uint1024 subtr_op(uint1024, uint1024);
-void printf_value(uint1024);
-void prt(unsigned long, int);//вспом. функция для printf_value()
-uint1024 multp_op(uint1024, uint1024);
-void scanf_val(uint1024*);
+void clear(uint1024_t * x);
+void print_digit(unsigned long, int);
+
+uint1024_t from_uint(unsigned int x);
+uint1024_t add_op(uint1024_t x, uint1024_t y);
+uint1024_t subtr_op(uint1024_t x, uint1024_t y);
+uint1024_t multp_op(uint1024_t x, uint1024_t y);
+void printf_value(uint1024_t x);
+void scanf_val(uint1024_t* x);
 
 
 int main() {
-    uint1024 a = init();
-    uint1024 b = init();
-    uint1024 c = from_uint(1);
-    uint1024 d = from_uint(2);
-
+    uint1024_t a;
+    uint1024_t b = from_uint(123);
     scanf_val(&a);
     scanf_val(&b);
 
+    uint1024_t c = from_uint(1); uint1024_t d = from_uint(2);
     for (int i = 0; i < 1024; ++i) {
-        c = multp_op(c,d);
+        c = multp_op(c, d);
     }
-    
-    printf_value(c); printf("\n");   
+
+    printf_value(c); printf("\n");
+
     printf_value(add_op(a, b)); printf("\n");
     printf_value(subtr_op(a, b)); printf("\n");
     printf_value(multp_op(a, b));
     return 0;
 }
 
-
-void scanf_val(uint1024 *a) {
-    char str[SIZE_CHAR];
-    int k = 0;
-    int i = 0;
-    for (i; i < SIZE_CHAR; ++i) {
-        str[i] = '\0';
-    }
-    scanf("%s", &str);
-    while(str[i] == '\0' ) {i -= 1;}
-
-    while (i >= 0) {
-        *(*a + (k / FIELD_SIZE)) += (str[i] - '0') * pow(10, k % FIELD_SIZE);
-        ++k;
-        --i;
+void clear(uint1024_t *x) {
+    for (int i = 0; i <= SIZE; ++i) {
+        x->value[i] = 0;
     }
 }
 
-void prt(unsigned long x, int i) {
-    if (i == FIELD_SIZE) 
+
+void print_digit(unsigned long x, int i) {
+    if (i == FIELD_SIZE) {
         return ;
-    prt(x / 10, ++i);
+    }
+
+    print_digit(x / 10, ++i);
     printf("%c", x % 10 + '0');
 }
 
-void printf_value(uint1024 x) {
-    int i = SIZE - 1;
-    for (i; *(x + i) == 0; --i) ;
-    
-    printf("%d", *(x + i--));
-    
-    for (i;i >= 0; --i)
-        prt(*(x + i), 0);
-}
 
-uint1024 init() {
-    uint1024 buff = malloc(SIZE * sizeof(unsigned long));
-    for (int i = 0; i < SIZE; ++i)
-        *(buff + i) = 0;
-    return buff;    
-}
-
-uint1024 from_uint(unsigned int x) {
-    uint1024 buff = init();
+void scanf_val(uint1024_t *x) {
+    clear(x);
+    char input[SIZE_CHAR];
     int i = 0;
+    int n = 0;
+
+    for (n; n < SIZE_CHAR; ++n) {
+        input[n] = '\0';
+    }
+
+    scanf("%s", &input);
+    while(input[n] == '\0' ) {
+        n -= 1;
+    }
+
+    while (n >= 0) {
+        x->value[i / FIELD_SIZE] += (input[n] - '0') * pow(10, i % FIELD_SIZE);
+        ++i;
+        --n;
+    }
+}
+
+
+void printf_value(uint1024_t x) {
+    int i;
+
+    for (i = SIZE - 1; x.value[i] == 0; --i) ;
+    
+    printf("%d", x.value[i]);
+    
+    for (i -= 1;i >= 0; --i) {
+        print_digit(x.value[i], 0);
+    }
+}
+
+
+uint1024_t from_uint(unsigned int x) {
+    uint1024_t result;
+    clear(&result);
+    int i = 0;
+
     while (x != 0) {
-        *(buff + i) = x % max;
-        x /= max;
+        result.value[i] = x % MAX;
+        x /= MAX;
         i++;
     }
-    return buff;
+
+    return result;
 }
 
-uint1024 add_op(uint1024 a, uint1024 b) {
-    uint1024 buff = init();
-    int o = 0;
-    unsigned long long sm;
+
+uint1024_t add_op(uint1024_t x, uint1024_t y) {
+    uint1024_t result;
+    clear(&result);
+    int shift = 0;
+    unsigned long long digitSum;
+
     for (int i = 0; i < SIZE; ++i) {
-        sm = *(a + i) + *(b + i) + o;
-        *(buff + i)= sm % max;
-        o = sm / max;
+        digitSum = x.value[i] + y.value[i] + shift;
+        result.value[i] = digitSum % MAX;
+        shift = digitSum / MAX;
     }
-    return buff;
+    return result;
 }
 
-uint1024 subtr_op(uint1024 a, uint1024 b) {
-    uint1024 buff = init();
-    signed long long o = 0;
-    signed long long sm;
+
+uint1024_t subtr_op(uint1024_t x, uint1024_t y) {
+    uint1024_t result;
+    clear(&result);
+    signed long long shift = 0;
+    signed long long digitSum;
     for (int i = 0; i < SIZE; ++i) {
-        sm = (long long )*(a + i) - (long long) *(b + i) - o;
-        *(buff + i) = (sm >= 0) ? sm : max + sm;
-        o = (sm >= 0) ? 0 : 1;
+        digitSum = (long long )x.value[i] - (long long) y.value[i] - shift;
+        result.value[i] = (digitSum < 0) ? MAX + digitSum : digitSum;
+        shift = (digitSum < 0) ? 1 : 0;
     }
-    return buff;
+    return result;
 }
 
-uint1024 multp_op(uint1024 a, uint1024 b) {
-    uint1024 buff = init();
-    unsigned long long pr_buff = 0;
-    unsigned long long o = 0;
+
+uint1024_t multp_op(uint1024_t x, uint1024_t y) {
+    uint1024_t result;
+    clear(&result);
+    unsigned long long product;
+    unsigned long long shift = 0;
 
     for (int pa = 0; pa < SIZE; ++pa) {
         for (int pb = 0; pa + pb < SIZE; ++pb) {
-            pr_buff =( (long long)*(a + pa) )* ((long long)*(b + pb)) + o;
-            buff[pa + pb] += pr_buff % max;
-            o = pr_buff / max;
+            product =((long long)x.value[pa])* ((long long)y.value[pb]);
+            product += shift;
+            result.value[pa + pb] += product % MAX;
+            shift = product / MAX;
         }
     }
-    return buff;
+    return result;
 }
