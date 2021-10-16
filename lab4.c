@@ -1,15 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include<string.h>
 
-int BYTE_SIZE  = 8;
-int COLUMNS = 10;
-
-
-int HEADER_SIZE = 10; 
-int EXT_HEADER_SIZE;
-int FRAME_HEADER_SIZE = 10;
-int PADDING_SIZE;
-int FOOTER_SIZE = 10;
 
 
 typedef struct Header{
@@ -20,99 +12,149 @@ typedef struct Header{
 } Header;
 
 typedef struct Frame {
-    char id[4];
-    char size[4];
-    char flags[2];
+    char *id;
+    char *size;
+    char *flags;
     char *content;
 } Frame;
+
+
+void clear(Frame * frame);
+int getSize(char sizearr[]);
+char read(FILE* fin);
+
+void getHeader(FILE*fin);
+void printHeader(FILE* fout);
+
+void printFrame(Frame* frame, FILE* fout);
+Frame* getFrame(FILE* fin, FILE*fout);
+Frame* initFrame();
 
 
 Header *header;
 Frame *frames[100]; int fp = 0;
 int pointer;
+int TAG_SIZE;
 
+
+int main() {
+    FILE *fin =  fopen("file.mp3", "rb");
+    FILE *fout = fopen("t.txt", "w");
+    getHeader(fin);
+    
+    while (pointer < TAG_SIZE) {
+        frames[fp++] = getFrame(fin, fout);
+    }
+
+    printHeader(fout);
+    for (int i = 0; i < fp;++i) {
+        printFrame(frames[i], fout);
+    }
+    printf("%d ", TAG_SIZE);
+}
+
+
+Frame* initFrame() {
+    Frame* frame = malloc(sizeof(Frame));
+    frame->id = malloc(4*sizeof(char));
+    frame->size = malloc(4*sizeof(char));
+    frame->flags = malloc(2*sizeof(char));
+    frame->content = malloc(sizeof(char*));
+    return frame;
+}
+
+void clear(Frame *frame) {
+    free(frame->id);
+    free(frame->size);
+    free(frame->flags);
+    free(frame->content);
+    free(frame);
+}
 
 char read(FILE* fin) {
     ++pointer;
     return fgetc(fin);
 }
 
-void toBin(int c, int d, FILE* fout) {
-    if (d < BYTE_SIZE) {
-        toBin(c / 2, d + 1, fout);
-        fprintf(fout, "%d", c % 2);
-    }
-}
-
-void print(FILE* fin, FILE*fout) {
-    int c, p = 0;
-    while ((c = fgetc(fin)) != EOF) {
-        if (p % COLUMNS == 0)
-            fprintf(fout, "\n");
-        //toBin(c, 0, fout);
-        //fprintf(fout, " ");
-        fprintf(fout, "%3d ", c);
-        p++;
-    }
-}
-
-int getSize(const char sizearr[], int fieldSize) {
+int getSize(char sizearr[]) {
     int size = 0;
-    for (int i = 0; i < fieldSize; ++i) {
-        size += (sizearr[fieldSize - i - 1] << 7*i);
+    for (int i = 0; i < 4; ++i) {
+        size += (sizearr[4 - i - 1] << 7*i);
     }
     return size;
 }
 
 
 void getHeader(FILE*fin) {
-    char *headerBuff = malloc(10 * sizeof(char));
-    for (int i = 0; i < HEADER_SIZE; ++i) {
-        headerBuff[i] = fgetc(fin);
-    }
-    header = (Header*)headerBuff;
+    header = malloc(sizeof(Header));
+    int i;
+    for (i = 0; i < 3; ++i)
+        header->id[i] = fgetc(fin);
+
+    for (i = 0; i < 2; ++i)
+        header->version[i] = fgetc(fin);
+
+
+    header->flags[0] = fgetc(fin);
+
+    for (i = 0; i < 4; ++i)
+        header->size[i] = fgetc(fin);
+
+    TAG_SIZE = getSize(header->size);    
 }
 
 
-void getFrame(FILE* fin, FILE*fout) {
-    char *frameHeaderStr = malloc(10 * sizeof(char));
-    Frame* frameHeaderBuff = malloc(sizeof(Frame));
+Frame * getFrame(FILE* fin, FILE*fout) {
+    Frame* frame = initFrame();
+    int i;
+    for (i = 0; i < 4; ++i)
+        frame->id[i] = read(fin);
 
-    for (int i = 0; i < FRAME_HEADER_SIZE; ++i) {
-        frameHeaderStr[i] = read(fin);
-    }
-    frameHeaderBuff = (Frame*)frameHeaderStr;
+    for (i = 0; i < 4; ++i)
+        frame->size[i] = read(fin);
 
-    int size = getSize(frameHeaderBuff->size, 4);
-    char *frameContentStr = malloc(size* sizeof(char));
-    for (int i = 0; i < size; ++i) {
-       frameContentStr[i] = read(fin);
-    }  
-    frameHeaderBuff->content = frameContentStr;
+    for (i = 0; i < 2; ++i)
+        frame->flags[i] = read(fin);
 
-    frames[fp++] = frameHeaderBuff;
-    return;
+    int size = getSize(frame->size);
+    char *string = malloc(size * sizeof(char));
+    for (i = 0; i < size; ++i) {
+        string[i] = read(fin);
+    }    
+
+    frame->content = string;
+
+    return frame;
 }
 
-int main() {
-    FILE *fin =  fopen("file.mp3", "rb");
-    FILE *fout = fopen("t.txt", "w");
-    getHeader(fin);
+
+void printHeader(FILE *fout) {
+    int i;
+    for (i = 0; i < 3; ++i)
+        fprintf(fout, "%c", header->id[i]);
+
+    for (i = 0; i < 2; ++i)
+        fprintf(fout, "%c", header->version[i]);
 
 
-    while (pointer < getSize(header->size, 4)) {
-        getFrame(fin, fout);
-    }
+    fprintf(fout, "%c", header->flags[0]);
+
+    for (i = 0; i < 4; ++i)
+        fprintf(fout, "%c", header->size[i]);
+}
 
 
-    for (int i = 0; i < fp; ++i) {
-        fprintf(fout, "%s ", frames[i]->id);
+void printFrame(Frame* frame, FILE*fout) {
+    int i;
+    for (i = 0; i < 4; ++i)
+        fprintf(fout, "%c", frame->id[i]);
 
-        for (int j = 1; j < getSize(frames[i]->size, 4); ++j) {
-            fprintf(fout, "%c", frames[i]->content[j]);
-        }
-        fprintf(fout, "\n");
-    }
-    // print(fin, fout);
-    
+    for (i = 0; i < 4; ++i)
+        fprintf(fout, "%c", frame->size[i]);
+
+    for (i = 0; i < 2; ++i)
+        fprintf(fout, "%c", frame->flags[i]);
+
+    for (i = 0; i < getSize(frame->size); ++i)
+        fprintf(fout, "%c", frame->content[i]);    
 }
