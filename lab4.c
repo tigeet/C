@@ -21,17 +21,18 @@ typedef struct Frame {
 
 void clear(Frame * frame);
 int getSize( unsigned char sizearr[]);
+int sz( unsigned char sizearr[]);
  unsigned char read_();
 
 void getHeader();
 void getHeaderFlag( unsigned char flags);
-void printHeader();
+//void printHeader();
 
 //void getExtHeader(FILE* fin);
-void printExtHeader();
+//void printExtHeader();
 
 
-void printFrame(Frame* frame);
+//void printFrame(Frame* frame);
 Frame* getFrame();
 Frame* initFrame();
 void set( unsigned char* []);
@@ -47,6 +48,10 @@ FILE* fin;
 FILE* fout;
 
 
+//размер фрейма - просто без игнора битов
+//хедера - с игнором 8х
+//сделать fseek для паддинга
+
 /*
     set, get, printExtHeader написаны в неадекватном состоянии, не копировать
     остальное вроде работает
@@ -54,21 +59,28 @@ FILE* fout;
 */  
 
 int main(int argc,  unsigned char* argv[]) {
-    fin =  fopen("assets/a.mp3", "rb");
+    fin =  fopen("c.mp3", "rb");
     fout = fopen("t.txt", "w");
 
 // int i = 0;
 //     while (i++ < 10000) {
-//         fprintf(fout, "%d ", fgetc(fin));
+//         //forintf(fout, "%d ", fgetc(fin));
 //     }
     getHeader(fin);
     printf("%d \n", getSize(header->size));
+
+
+    //unsigned char arr[4] = {0, 0, 10, 141};
+    //printf("\n%d\n", sz(arr));
     //printHeader();
+    int i = 0;
     while (pointer < getSize(header->size)) {
+    //while (i < 10) {
         Frame* frame = getFrame();
         //printFrame(frame);
-        printf("        %d\n", getSize(frame->size));
+        //printf("        %d\n", getSize(frame->size));
         clear(frame);
+        ++i;
     }
 
     //printf("size:   %d %d", pointer, getSize(header->size));
@@ -96,14 +108,29 @@ void clear(Frame *frame) {
 }
 
  unsigned char read_() {
+    unsigned char c = fgetc(fin);
+    if (pointer < 15000) {
+        if (c == '\n' || c == 13)
+            fprintf(fout, "%d  \n", c);
+        else 
+            fprintf(fout, "%d   %c\n", c, c);
+    }
     ++pointer;
-    return fgetc(fin);
+    return c;
 }
 
 int getSize( unsigned char sizearr[]) {
     int size = 0;
     for (int i = 0; i < 4; ++i) {
         size += ((sizearr[4 - i - 1]) << 7*i);
+    }
+    return size;
+}
+
+int sz(unsigned char arr[]) {
+    int size = 0;
+    for (int i = 0; i < 4; ++i) {
+        size += ((arr[4 - i - 1]) << 8*i);
     }
     return size;
 }
@@ -135,12 +162,13 @@ Frame * getFrame() {
         
     for (i = 0; i < 4; ++i) {
         frame->size[i] = read_();
-        printf("%d  ", frame->size[i]);
+        printf("%d ", frame->size[i]);
     }
     for (i = 0; i < 2; ++i)
         frame->flags[i] = read_();
 
-    int size = getSize(frame->size);
+    int size = sz(frame->size);
+    printf("%d\n", size);
     unsigned char *string = malloc(size * sizeof( unsigned char));
     for (i = 0; i < size; ++i) {
         string[i] = read_();
@@ -150,35 +178,35 @@ Frame * getFrame() {
     return frame;
 }
 
-void printHeader() {
-    int i;
-    for (i = 0; i < 3; ++i)
-        fprintf(fout, "%c ", header->id[i]);
+// void printHeader() {
+//     int i;
+//     for (i = 0; i < 3; ++i)
+//         //forintf(fout, "%c ", header->id[i]);
 
-    for (i = 0; i < 2; ++i)
-        fprintf(fout, "%c ", header->version[i]);
+//     for (i = 0; i < 2; ++i)
+//         //forintf(fout, "%c ", header->version[i]);
 
 
-    fprintf(fout, "%c ", header->flags);
+//     //forintf(fout, "%c ", header->flags);
 
-    for (i = 0; i < 4; ++i)
-        fprintf(fout, "%c ", header->size[i]);
-}
+//     for (i = 0; i < 4; ++i)
+//         //forintf(fout, "%c ", header->size[i]);
+// }
 
-void printFrame(Frame* frame) {
-    fprintf(fout, "\n\n\n---------------------------------\n\n\n");
-    int i;
-    for (i = 0; i < 4; ++i)
-        fprintf(fout, "%c", frame->id[i]);
+// void printFrame(Frame* frame) {
+//     //forintf(fout, "\n\n\n---------------------------------\n\n\n");
+//     int i;
+//     for (i = 0; i < 4; ++i)
+//         //forintf(fout, "%c", frame->id[i]);
 
-    for (i = 0; i < 4; ++i) {
-        fprintf(fout, "%d", frame->size[i]);
-    }
-    for (i = 0; i < 2; ++i)
-        fprintf(fout, "%d", frame->flags[i]);
+//     for (i = 0; i < 4; ++i) {
+//         //forintf(fout, "%d", frame->size[i]);
+//     }
+//     for (i = 0; i < 2; ++i)
+//         //forintf(fout, "%d", frame->flags[i]);
 
-    printf("%d  \n ", getSize(frame->size));
-    for (i = 0; i < getSize(frame->size); ++i)
-        fprintf(fout, "%c", frame->content[i]);
-}
+//     printf("%d  \n ", getSize(frame->size));
+//     for (i = 0; i < getSize(frame->size); ++i)
+//         //forintf(fout, "%c", frame->content[i]);
+// }
 
