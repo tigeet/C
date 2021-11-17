@@ -40,15 +40,54 @@ long pointer;
 FILE* fin;
 FILE* fout;
 
-int main(int argc,  unsigned char* argv[]) {
-    fin =  fopen("c.mp3", "rb");
-    fout = fopen("t.txt", "w");
+char* separate(char* str);
+void parsearg(int argc, char* argv[]);
 
-    getheader(fin);
-    printf("%d \n", headersize(header->size));
-    char q[5];
-    scanf("%s", q);
-    get(q);
+int main(int argc, char* argv[]) {
+    //filepath
+    fin =  fopen("assets/c.mp3", "rb");
+    fout = fopen("t.txt", "w");
+    show();
+
+    // fclose(fin);
+    // fclose(fout);
+    // printf("%d", rename("t.txt", "tb.txt"));
+
+}
+
+// void copyf(FILE* origin, FILE* buff) {
+
+// }
+
+
+
+void parsearg(int argc, char* argv[]) {
+    if (argc < 3) {
+        fprintf(fout, "not enough armuments");
+    } else if (argc == 3) {
+        char* val = separate(argv[2]);
+        if (strcmp(argv[2], "--show") == 0)
+            show();
+        else if (strcmp(argv[2], "--get") == 0)
+            get(val);
+        else   
+            fprintf(fout, "1 arg, not supported");
+    } else if (argc == 4) {
+        //
+    } else {
+        fprintf(fout, "too many arguments");
+    }
+}
+
+
+char* separate(char* str) {//первая часть - str, вторая - separate
+    while (*str != '=' && *str++ != '\0');
+
+    if (*str == '\0')
+        return str;
+    else 
+        *str = '\0';
+    return ++str;
 }
 
 Frame* initframe() {
@@ -109,6 +148,7 @@ void read_(unsigned char* str, long n){
 }
 
 Frame* getframe() {
+    printf("%d\n", pointer);
     Frame* frame = initframe();
     read_(frame->id, 4);
     if (null(frame->id, 4)) {
@@ -118,7 +158,9 @@ Frame* getframe() {
     read_(frame->flags, 2);
 
     int size = framesize(frame->size);
-    unsigned char* str = malloc((size + 1) * sizeof(char));
+    //fseek(fin, size, SEEK_CUR);
+    //pointer += size;
+    unsigned char* str = malloc((size + 1L) * sizeof(unsigned char));
     read_(str, size);
     frame->content = str;
 
@@ -134,32 +176,38 @@ int null(char* p, int n) {
  }
 
 void show() {
+    getheader();
     Frame *frame;
     while (pointer < headersize(header->size) && (frame = getframe())) {
         print(frame->id, 4);
-        printf("  ");
+        fprintf(fout, "  %d  ", framesize(frame->size));
+        
         print(frame->content, framesize(frame->size));
-        printf("\n");
+        fprintf(fout, "\n");
         clear(frame);
     }
 }
 
 void print(char *p, int n) {
-    while (n-- > 0)
-        printf("%c", *(p++));
+    while (n-- > 0) {
+        if (*p) 
+            fprintf(fout, "%c", *p);
+            *p++;
+    }
 }
 
 void get(char *q) {
+    getheader();   
     Frame *frame;
     while (pointer < headersize(header->size) && (frame = search(q))) {
         if (strcmp(frame->id, q) == 0) {
             print(frame->id, 4);
-            printf("    ");
+            fprintf(fout, "    ");
             print(frame->content, framesize(frame->size));
             return ;
         }
     }
-    printf("tag not found");
+    fprintf(fout, "tag not found");
 }
 
 Frame* search(char* q) {
@@ -183,7 +231,7 @@ Frame* search(char* q) {
         pointer += size;
         fseek(fin, size, SEEK_CUR);
     } else if (tp == GET) {
-        unsigned char* str = malloc((size + 1) * sizeof(char));
+        unsigned char* str = malloc((size + 1) * sizeof(unsigned char));
         read_(str, size);
         frame->content = str;
     }
