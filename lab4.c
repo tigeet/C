@@ -43,21 +43,29 @@ FILE* fout;
 char* separate(char* str);
 void parsearg(int argc, char* argv[]);
 
+void copyf(char []);
 int main(int argc, char* argv[]) {
     //filepath
-    fin =  fopen("assets/c.mp3", "rb");
+    fin =  fopen("assets/a.mp3", "rb");
     fout = fopen("t.txt", "w");
-    show();
-
+    //show();
+    copyf("r.mp3");
     // fclose(fin);
     // fclose(fout);
     // printf("%d", rename("t.txt", "tb.txt"));
-
 }
 
-// void copyf(FILE* origin, FILE* buff) {
+void copyf(char origin[]) {
+    FILE *buff = fopen("buff.txt", "w");
+    int c;
+    while ((c = fgetc(fin)) != EOF) {
+        //if (c != 13)
+            fputc(c, buff);
+    }
 
-// }
+    fclose(buff);
+    rename("buff.txt", "text.txt");
+}
 
 
 
