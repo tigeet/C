@@ -45,7 +45,7 @@ char *separate(char *str);
 void parsearg(int argc, char *argv[]);
 
 void copyf(char buff[], char origin[]);
-void set(const char id[], const char val[]);
+void set(const char id[], char val[]);
 
 void printHeader();
 void printFrame(Frame *);
@@ -63,6 +63,7 @@ int main(int argc, char *argv[]) {
     }
     fin = fopen(filepath, "r+");
     parsearg(argc, argv);
+    fclose(fin);
 }
 
 void parsearg(int argc, char *argv[]) {
@@ -107,25 +108,29 @@ void parsearg(int argc, char *argv[]) {
 }
 
 
-void set(const char id[], const char val[]) {   
+void set(const char id[], char val[]) {   
     Frame * frames[100];
     getheader(); 
-    Frame * frame;
+    Frame * frame; Frame *q;
     int i = 0;
     int f = 0;
     while (pointer < headersize(header->size) && (frame = getframe())) {
         if (strcmp(frame->id, id) == 0) {
+            q = frame;
             f = 1;
-            long fsize = strlen(val);
-            realloc(frame->content, fsize);
+            long fsize = strlen(val) + 1;
+            //frame->content = realloc(frame->content, fsize);
             for (int i = 0; i < 4; ++i) {
                 frame->size[3 - i] = fsize % (long)pow(2, 8);
                 fsize /= pow(2, 8);
-            }
-            strcpy(frame->content, val);
+            } 
+            // char * buff = malloc(fsize * sizeof(char));
+            // buff[0] = 0;
+            // strncpy(buff + 1, val, fsize - 1);
+            val[0] = 0;
+            frame->content = val;
         }
         frames[i++] = frame;
-
     }
 
     if (!f) {
@@ -133,21 +138,24 @@ void set(const char id[], const char val[]) {
         return ;
     }
 
-    long size1 = framesize(frame->size);
-    long size2 = strlen(val);
+    long size1 = framesize(q->size);
+    long size2 = strlen(val) + 1;
     long dsize = size2 - size1;
     long size = headersize(header->size) + dsize;
+
+
     fseek(fin, 0, SEEK_SET);
+    //fseek(fin, 0, SEEK_SET);
     for (int i = 0; i < 4; ++i) {
         header->size[3 - i] = size % (long)pow(2, 7);
         size /= pow(2, 7);
     }
     printHeader();
 
-
     for (int j = 0; j < i; ++j)
         printFrame(frames[j]);
-}
+    fprintf(fin, "\0");
+ }
 
 
 Frame *getframe() {
