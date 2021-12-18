@@ -124,11 +124,14 @@ void set(const char id[], char val[]) {
                 frame->size[3 - i] = fsize % (long)pow(2, 8);
                 fsize /= pow(2, 8);
             } 
-            // char * buff = malloc(fsize * sizeof(char));
-            // buff[0] = 0;
-            // strncpy(buff + 1, val, fsize - 1);
-            val[0] = 0;
-            frame->content = val;
+            //printf("size: %d\n", fsize);
+            char * buff = calloc(strlen(val) + 1, sizeof(char));
+            buff[0] = 0;
+            for (int i = 1; i < strlen(val) + 1; ++i) {
+                buff[i] = val[i - 1];
+            }
+            //strncpy(buff + 1, val, fsize - 1);
+            frame->content = buff;
         }
         frames[i++] = frame;
     }
